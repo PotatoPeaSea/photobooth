@@ -1,6 +1,11 @@
 # Cat Printer (Web Bluetooth)
 
-Next.js app that reproduces the Bluetooth print flow captured in `bttrace.pklg - (null).pklg`.
+Two Next.js apps that talk to GB0X / SC03-style Bluetooth thermal printers, reverse‑engineered from `bttrace.pklg - (null).pklg`.
+
+| Folder | Port | Purpose |
+|--------|------|---------|
+| `web/` | 3000 | Pick printer, upload image, print |
+| `photobooth/` | 3001 | Live camera, filters, shutter → print |
 
 ## Trace analysis
 
@@ -16,19 +21,25 @@ The capture shows a **Cat Printer** protocol device (`SC03h-4CD0`, firmware `3.0
 
 Frame format: `51 78 CMD 00 LEN_LO LEN_HI PAYLOAD CRC8 FF`
 
-## Run the app
+## Run the apps
+
+**Image printer** (`web/`):
 
 ```bash
-cd web
-npm install
-npm run dev
+cd web && npm install && npm run dev
 ```
 
-Open **http://localhost:3000** in **Chrome** or **Edge** (Web Bluetooth). macOS Safari does not support Web Bluetooth for printers.
+Open **http://localhost:3000** — choose printer, select image, print.
 
-1. **Choose printer** — picker filtered to common name prefixes (GB0X, SC03, M02, …).
-2. **Select image** — scaled to 384 px width, Floyd–Steinberg dithered to 1-bit.
-3. **Print** — sends the same command sequence as the trace.
+**Photobooth** (`photobooth/`):
+
+```bash
+cd photobooth && npm install && npm run dev
+```
+
+Open **http://localhost:3001** — connect printer, pick a **strip surround** (right panel; styles based on common online booth templates), press the shutter **once per photo** (4 total), then the framed vertical strip prints automatically.
+
+Use **Chrome** or **Edge** (HTTPS or localhost). macOS Safari does not support Web Bluetooth for printers.
 
 ## Parser scripts (trace)
 
