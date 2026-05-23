@@ -23,6 +23,7 @@ export default function PhotoboothApp() {
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const frameCanvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<HTMLCanvasElement[]>([]);
+  const lastPrintRowsRef = useRef<Uint8Array[] | null>(null);
   const animRef = useRef<number>(0);
 
   const [supported, setSupported] = useState(true);
@@ -52,7 +53,6 @@ export default function PhotoboothApp() {
   const nextPhoto = capturedCount + 1;
   const stripComplete = capturedCount >= STRIP_COUNT;
   const stripStarted = capturedCount > 0;
-  const activeSurround = STRIP_SURROUNDS.find((s) => s.id === surroundId);
 
   const resetStrip = useCallback(() => {
     framesRef.current = [];
@@ -137,17 +137,38 @@ export default function PhotoboothApp() {
     setTimeout(() => setFlash(false), 280);
   };
 
-  const printStrip = async (frames: HTMLCanvasElement[]) => {
-    const strip = composeStripWithSurround(frames, surroundId);
-    const bitmap = canvasToBitmap(strip, PRINT_DITHER);
-    setLastShot(bitmap.previewUrl);
-
+  const printRows = async (rows: Uint8Array[]) => {
     await printerRef.current.printRows(
-      bitmap.rows,
+      rows,
       { energy: 51, speed: 1, feedAfter: 0xe0 },
       (_msg, pct) => setProgress(pct)
     );
+  };
+
+  const printStrip = async (frames: HTMLCanvasElement[]) => {
+    const strip = composeStripWithSurround(frames, surroundId);
+    const bitmap = canvasToBitmap(strip, PRINT_DITHER);
+    setLastShot(bitmap.grayscalePreviewUrl);
+    lastPrintRowsRef.current = bitmap.rows;
+    await printRows(bitmap.rows);
     resetStrip();
+  };
+
+  const reprintLast = async (copies: number) => {
+    const rows = lastPrintRowsRef.current;
+    if (!printerRef.current.connected || !rows || busy) return;
+
+    setBusy(true);
+    try {
+      for (let i = 0; i < copies; i++) {
+        await printRows(rows);
+      }
+    } catch {
+      /* reprint failed */
+    } finally {
+      setBusy(false);
+      setProgress(0);
+    }
   };
 
   const shutter = async () => {
@@ -412,8 +433,8 @@ export default function PhotoboothApp() {
               )}
 
               {lastShot && (
-                <div>
-                  <p className="mb-1 text-[10px] uppercase tracking-wide text-white/40">
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-wide text-white/40">
                     Last print
                   </p>
                   <img
@@ -421,6 +442,40 @@ export default function PhotoboothApp() {
                     alt="Last strip"
                     className="max-h-24 w-full rounded border border-white/15 object-contain"
                   />
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      disabled={busy || !printerName}
+                      onClick={() => reprintLast(1)}
+                      className="flex-1 rounded-md border border-white/20 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                    >
+                      Print again
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !printerName}
+                      onClick={() => reprintLast(2)}
+                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                    >
+                      ×2
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !printerName}
+                      onClick={() => reprintLast(3)}
+                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                    >
+                      ×3
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !printerName}
+                      onClick={() => reprintLast(4)}
+                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                    >
+                      ×4
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

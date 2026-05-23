@@ -5,10 +5,38 @@ export interface BitmapResult {
   rows: Uint8Array[];
   width: number;
   height: number;
-  previewUrl: string;
+  /** Scaled grayscale preview (no dither) for UI. */
+  grayscalePreviewUrl: string;
 }
 
-/** Scale capture to 384px wide, dither with chosen pattern, pack print rows. */
+function grayscaleToDataUrl(
+  gray: Float32Array,
+  width: number,
+  height: number
+): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.createImageData(width, height);
+  const d = img.data;
+  for (let i = 0; i < gray.length; i++) {
+    const v = Math.round(gray[i]!);
+    const o = i * 4;
+    d[o] = v;
+    d[o + 1] = v;
+    d[o + 2] = v;
+    d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+/**
+ * Scale to 384px wide and pack 1-bit print rows.
+ * Cat printers only support on/off dots — use `threshold` for plain gray→B/W
+ * (no Floyd–Steinberg / halftone); other DitherId values add a pattern.
+ */
 export function canvasToBitmap(
   source: HTMLCanvasElement,
   ditherId: DitherId
@@ -41,25 +69,10 @@ export function canvasToBitmap(
     rows.push(row);
   }
 
-  const preview = document.createElement("canvas");
-  preview.width = width;
-  preview.height = height;
-  const pctx = preview.getContext("2d")!;
-  const img = pctx.createImageData(width, height);
-  for (let i = 0; i < binary.length; i++) {
-    const v = binary[i] ? 0 : 255;
-    const o = i * 4;
-    img.data[o] = v;
-    img.data[o + 1] = v;
-    img.data[o + 2] = v;
-    img.data[o + 3] = 255;
-  }
-  pctx.putImageData(img, 0, 0);
-
   return {
     rows,
     width,
     height,
-    previewUrl: preview.toDataURL("image/png"),
+    grayscalePreviewUrl: grayscaleToDataUrl(gray, width, height),
   };
 }
