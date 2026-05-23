@@ -5,6 +5,7 @@ import { BluetoothCatPrinter } from "@/lib/bluetoothPrinter";
 import { canvasToBitmap } from "@/lib/canvasToBitmap";
 import { captureVideoToCanvas, renderVideoFrame } from "@/lib/renderFrame";
 import { STRIP_COUNT } from "@/lib/photoStrip";
+import { DITHER_PATTERNS, ditherImageData, type DitherId } from "@/lib/dither";
 import {
   composeStripWithSurround,
   renderSurroundPreview,
@@ -15,7 +16,6 @@ import {
 const PREVIEW_SIZE = 440;
 /** Preview canvas + border-4 + p-1 — side panels align to this height */
 const PREVIEW_FRAME_H = PREVIEW_SIZE + 16 + 8;
-const PRINT_DITHER = "floydSteinberg" as const;
 
 export default function PhotoboothApp() {
   const printerRef = useRef(new BluetoothCatPrinter());
@@ -30,6 +30,8 @@ export default function PhotoboothApp() {
   const [cameraOk, setCameraOk] = useState(false);
   const [printerName, setPrinterName] = useState<string | null>(null);
   const [surroundId, setSurroundId] = useState<SurroundId>("classic");
+  const [ditherId, setDitherId] = useState<DitherId>("stucki");
+  const [previewDither, setPreviewDither] = useState(false);
   const [busy, setBusy] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
@@ -79,8 +81,14 @@ export default function PhotoboothApp() {
     canvas.height = PREVIEW_SIZE;
     renderVideoFrame(ctx, video, PREVIEW_SIZE);
 
+    if (previewDither) {
+      const imageData = ctx.getImageData(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
+      ditherImageData(imageData, ditherId);
+      ctx.putImageData(imageData, 0, 0);
+    }
+
     animRef.current = requestAnimationFrame(drawPreview);
-  }, []);
+  }, [previewDither, ditherId]);
 
   useEffect(() => {
     setSupported(BluetoothCatPrinter.isSupported());
@@ -147,7 +155,7 @@ export default function PhotoboothApp() {
 
   const printStrip = async (frames: HTMLCanvasElement[]) => {
     const strip = composeStripWithSurround(frames, surroundId);
-    const bitmap = canvasToBitmap(strip, PRINT_DITHER);
+    const bitmap = canvasToBitmap(strip, ditherId);
     setLastShot(bitmap.grayscalePreviewUrl);
     lastPrintRowsRef.current = bitmap.rows;
     await printRows(bitmap.rows);
@@ -328,7 +336,7 @@ export default function PhotoboothApp() {
         {/* Center — preview + shutter */}
         <div className="flex w-full max-w-[440px] flex-col items-center gap-2 lg:justify-self-center">
           <p className="w-full font-mono text-[10px] uppercase tracking-widest text-white/40 lg:text-center">
-            Live preview
+            {previewDither ? "Live preview · dithered" : "Live preview"}
           </p>
 
           <div className="relative w-full">
@@ -483,6 +491,67 @@ export default function PhotoboothApp() {
         </aside>
         </div>
       </div>
+
+      <footer className="relative z-10 shrink-0 border-t border-white/10 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-white/40">
+              Dither pattern
+            </p>
+            {stripStarted && (
+              <p className="text-[10px] text-white/35">
+                Locked for this strip
+              </p>
+            )}
+            <button
+                type="button"
+                role="switch"
+                aria-checked={previewDither}
+                disabled={!cameraOk}
+                onClick={() => setPreviewDither((on) => !on)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition disabled:opacity-40 ${
+                  previewDither
+                    ? "border-booth-glow bg-booth-glow/10 text-booth-glow"
+                    : "border-white/15 text-white/70 hover:bg-white/5"
+                }`}
+              >
+                <span
+                  className={`relative h-4 w-7 shrink-0 rounded-full transition ${
+                    previewDither ? "bg-booth-glow" : "bg-white/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition ${
+                      previewDither ? "left-3.5" : "left-0.5"
+                    }`}
+                  />
+                </span>
+                Preview on feed
+              </button>
+          </div>
+          <div className="flex w-full justify-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {DITHER_PATTERNS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={busy || stripStarted}
+                onClick={() => {
+                  setDitherId(p.id);
+                  if (!previewDither) setPreviewDither(true);
+                }}
+                title={p.description}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-left transition ${
+                  ditherId === p.id
+                    ? "border-booth-glow bg-booth-glow/10 text-booth-glow"
+                    : "border-white/15 text-white/75 hover:bg-white/5 disabled:opacity-40"
+                }`}
+              >
+                <span className="block text-xs font-medium">{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
