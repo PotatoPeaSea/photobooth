@@ -12,6 +12,7 @@ import {
   STRIP_SURROUNDS,
   type SurroundId,
 } from "@/lib/stripSurrounds";
+import StripShareQr from "@/components/StripShareQr";
 
 const PREVIEW_SIZE = 440;
 /** Preview canvas + border-4 + p-1 — side panels align to this height */
@@ -30,7 +31,7 @@ export default function PhotoboothApp() {
   const [cameraOk, setCameraOk] = useState(false);
   const [printerName, setPrinterName] = useState<string | null>(null);
   const [surroundId, setSurroundId] = useState<SurroundId>("classic");
-  const [ditherId, setDitherId] = useState<DitherId>("stucki");
+  const [ditherId, setDitherId] = useState<DitherId>("floydSteinberg");
   const [previewDither, setPreviewDither] = useState(false);
   const [busy, setBusy] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -445,11 +446,14 @@ export default function PhotoboothApp() {
                   <p className="text-[10px] uppercase tracking-wide text-white/40">
                     Last print
                   </p>
-                  <img
-                    src={lastShot}
-                    alt="Last strip"
-                    className="max-h-24 w-full rounded border border-white/15 object-contain"
-                  />
+                  <div className="flex items-start gap-2">
+                    <img
+                      src={lastShot}
+                      alt="Last strip"
+                      className="min-w-0 max-h-28 flex-1 rounded border border-white/15 object-contain"
+                    />
+                    <StripShareQr imageDataUrl={lastShot} />
+                  </div>
                   <div className="flex flex-wrap gap-1">
                     <button
                       type="button"
