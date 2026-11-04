@@ -1,0 +1,7 @@
+packages:
+  - print-server
+
+allowBuilds:
+  sharp: false
+  "@pokusew/pcsclite": true
+  esbuild: true
