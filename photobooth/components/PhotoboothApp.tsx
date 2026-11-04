@@ -36,7 +36,7 @@ export default function PhotoboothApp() {
   const [busy, setBusy] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
-  const [lastShot, setLastShot] = useState<string | null>(null);
+  const [lastStrip, setLastStrip] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [thumbs, setThumbs] = useState<string[]>([]);
 
@@ -154,12 +154,26 @@ export default function PhotoboothApp() {
     );
   };
 
-  const printStrip = async (frames: HTMLCanvasElement[]) => {
+  const saveStrip = (dataUrl: string) => {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `photostrip-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const finishStrip = async (frames: HTMLCanvasElement[]) => {
     const strip = composeStripWithSurround(frames, surroundId);
-    const bitmap = canvasToBitmap(strip, ditherId);
-    setLastShot(bitmap.grayscalePreviewUrl);
-    lastPrintRowsRef.current = bitmap.rows;
-    await printRows(bitmap.rows);
+    setLastStrip(strip.toDataURL("image/png"));
+
+    // Thermal printer prints B/W; the colour printer path lands later.
+    if (printerRef.current.connected) {
+      const bitmap = canvasToBitmap(strip, ditherId);
+      lastPrintRowsRef.current = bitmap.rows;
+      await printRows(bitmap.rows);
+    }
+
     resetStrip();
   };
 
@@ -181,7 +195,6 @@ export default function PhotoboothApp() {
   };
 
   const shutter = async () => {
-    if (!printerRef.current.connected) return;
     if (!cameraOk || busy || stripComplete) return;
 
     const video = videoRef.current;
@@ -213,7 +226,7 @@ export default function PhotoboothApp() {
         return;
       }
 
-      await printStrip(framesRef.current);
+      await finishStrip(framesRef.current);
     } catch {
       /* capture/print failed */
     } finally {
@@ -276,7 +289,7 @@ export default function PhotoboothApp() {
           >
             <p className="mb-1.5 shrink-0 text-center text-xs font-medium text-booth-glow">
               {stripComplete
-                ? "Printing…"
+                ? "Finishing…"
                 : `Photo ${Math.min(nextPhoto, STRIP_COUNT)} of ${STRIP_COUNT}`}
             </p>
             <div className="flex min-h-0 flex-1 flex-col gap-1">
@@ -441,53 +454,62 @@ export default function PhotoboothApp() {
                 </p>
               )}
 
-              {lastShot && (
+              {lastStrip && (
                 <div className="space-y-2">
                   <p className="text-[10px] uppercase tracking-wide text-white/40">
-                    Last print
+                    Last strip
                   </p>
                   <div className="flex items-start gap-2">
                     <img
-                      src={lastShot}
+                      src={lastStrip}
                       alt="Last strip"
                       className="min-w-0 max-h-28 flex-1 rounded border border-white/15 object-contain"
                     />
-                    <StripShareQr imageDataUrl={lastShot} />
+                    <StripShareQr imageDataUrl={lastStrip} />
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    <button
-                      type="button"
-                      disabled={busy || !printerName}
-                      onClick={() => reprintLast(1)}
-                      className="flex-1 rounded-md border border-white/20 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
-                    >
-                      Print again
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !printerName}
-                      onClick={() => reprintLast(2)}
-                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
-                    >
-                      ×2
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !printerName}
-                      onClick={() => reprintLast(3)}
-                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
-                    >
-                      ×3
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !printerName}
-                      onClick={() => reprintLast(4)}
-                      className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
-                    >
-                      ×4
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveStrip(lastStrip)}
+                    className="w-full rounded-md bg-booth-accent py-1.5 text-[11px] font-medium text-white hover:brightness-110"
+                  >
+                    Save strip
+                  </button>
+                  {printerName && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => reprintLast(1)}
+                        className="flex-1 rounded-md border border-white/20 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                      >
+                        Print again
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => reprintLast(2)}
+                        className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                      >
+                        ×2
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => reprintLast(3)}
+                        className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                      >
+                        ×3
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => reprintLast(4)}
+                        className="rounded-md border border-white/20 px-2 py-1.5 text-[10px] text-white/80 hover:bg-white/5 disabled:opacity-40"
+                      >
+                        ×4
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

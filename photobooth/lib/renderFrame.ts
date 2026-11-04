@@ -1,16 +1,4 @@
-/** Draw mirrored square crop from video, grayscale (no dither). */
-
-export function toGrayscale(imageData: ImageData): void {
-  const d = imageData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const gray = Math.round(
-      0.299 * d[i]! + 0.587 * d[i + 1]! + 0.114 * d[i + 2]!
-    );
-    d[i] = gray;
-    d[i + 1] = gray;
-    d[i + 2] = gray;
-  }
-}
+/** Draw mirrored square crop from video in full color (no dither). */
 
 export function renderVideoFrame(
   ctx: CanvasRenderingContext2D,
@@ -31,13 +19,9 @@ export function renderVideoFrame(
   ctx.scale(-1, 1);
   ctx.drawImage(video, sx, sy, side, side, 0, 0, size, size);
   ctx.restore();
-
-  const imageData = ctx.getImageData(0, 0, size, size);
-  toGrayscale(imageData);
-  ctx.putImageData(imageData, 0, 0);
 }
 
-/** Capture high-res grayscale frame (matches live preview, no dither). */
+/** Capture high-res color frame (matches live preview, no dither). */
 export function captureVideoToCanvas(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement
@@ -58,8 +42,4 @@ export function captureVideoToCanvas(
   ctx.scale(-1, 1);
   ctx.drawImage(video, sx, sy, side, side, 0, 0, side, side);
   ctx.restore();
-
-  const imageData = ctx.getImageData(0, 0, side, side);
-  toGrayscale(imageData);
-  ctx.putImageData(imageData, 0, 0);
 }
