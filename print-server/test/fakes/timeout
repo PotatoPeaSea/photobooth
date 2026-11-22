@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Fake timeout: records the call (gphoto2 --reset is the only use) and succeeds.
+source "$(dirname "$0")/common.sh"
+fake_call timeout "$@"
+exit 0

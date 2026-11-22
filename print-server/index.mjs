@@ -23,6 +23,7 @@ import {
   validatePasswordShape,
   validateSsid,
 } from "./wifi.mjs";
+import { readCameraStatus, readNetworkInfo, restartCamera } from "./system.mjs";
 
 const exec = promisify(execFile);
 
@@ -708,6 +709,41 @@ app.post(
       res.json(result);
     } finally {
       wifiJoinRunning = false;
+    }
+  }),
+);
+
+// Debug tab: where to ssh in, which Wi-Fi the booth is on, and the camera feed's state.
+app.get(
+  "/staff/debug",
+  route(async (_req, res) => {
+    const [network, wifi, camera] = await Promise.all([
+      readNetworkInfo(),
+      readDeviceStatus().catch(() => null),
+      readCameraStatus(),
+    ]);
+    res.json({ network: { ...network, wifi: wifi?.connected?.ssid ?? null }, camera });
+  }),
+);
+
+// One restart at a time: a second tap while systemctl is still stopping would race the first.
+let cameraRestartRunning = false;
+
+app.post(
+  "/staff/camera/restart",
+  route(async (_req, res) => {
+    if (cameraRestartRunning) {
+      res.status(409).json({ error: "The camera is already restarting." });
+      return;
+    }
+    cameraRestartRunning = true;
+    try {
+      log("Staff restarting the camera feed");
+      const result = await restartCamera();
+      if (!result.ok) log(result.message);
+      res.json(result);
+    } finally {
+      cameraRestartRunning = false;
     }
   }),
 );

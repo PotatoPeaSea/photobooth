@@ -5,6 +5,7 @@ import { BracketButton } from "@/components/brand/Brand";
 import { useIdle } from "@/components/booth/hooks";
 import { BoothScreen } from "@/components/booth/Scene";
 import BoothTab from "./BoothTab";
+import DebugTab from "./DebugTab";
 import PinPad from "./PinPad";
 import PrinterTab from "./PrinterTab";
 import WifiTab from "./WifiTab";
@@ -19,6 +20,7 @@ const POLL_MS = 4_000;
 const TABS = [
   { id: "printer", label: "Printer" },
   { id: "wifi", label: "Wi-Fi" },
+  { id: "debug", label: "Debug" },
   { id: "booth", label: "Booth" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -106,6 +108,8 @@ export default function StaffPanel({ onExit }: { onExit: () => void }) {
         return <PrinterTab pin={current.pin} status={current.status} onChanged={refresh} />;
       case "wifi":
         return <WifiTab pin={current.pin} />;
+      case "debug":
+        return <DebugTab pin={current.pin} visible={tab === "debug"} onOpenWifi={() => openTab("wifi")} />;
       case "booth":
         return <BoothTab pin={current.pin} />;
     }

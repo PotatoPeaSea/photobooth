@@ -43,7 +43,7 @@ Behind the guest flow there are three reliability features for running unattende
 
 - **Camera recovery.** The booth notices a frozen or dropped live view and reconnects without restarting the kiosk.
 - **Printer problem handling.** Jams, paper, ink and open covers are read from CUPS. A print sent in one of those states is held in the queue instead of failing, and the guest sees a clear status.
-- **Staff panel.** Five taps in the top-right corner of the Scan screen, then a PIN, open a panel for the print queue, Wi-Fi setup and leaving kiosk mode.
+- **Staff panel.** Five taps in the top-right corner of the Scan screen, then a PIN, open a panel for the print queue, Wi-Fi setup, a Debug tab (SSH address, camera feed restart and preview) and leaving kiosk mode.
 
 These were written after the event, in response to what went wrong at it. They are tested against fake hardware (fake CUPS and `nmcli` commands) and in Playwright. They have not yet run on the booth hardware, so the real camera, the real printer's CUPS messages and the Pi's `nmcli` output are unchecked.
 

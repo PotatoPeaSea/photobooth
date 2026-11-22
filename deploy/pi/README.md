@@ -11,6 +11,7 @@ live outside the repo on the device; keep these in sync when you change them.
 | `v4l2loopback.conf` | `/etc/modprobe.d/` (and `v4l2loopback` in `/etc/modules-load.d/`) |
 | `50-photobooth-pcsc.rules` | `/etc/polkit-1/rules.d/` — lets the service use the NFC reader |
 | `50-photobooth-networkmanager.rules` | `/etc/polkit-1/rules.d/` — lets the staff Wi-Fi panel scan and join networks as `pi` |
+| `50-photobooth-systemd.rules` | `/etc/polkit-1/rules.d/` — lets the staff Debug tab stop and start `photobooth-webcam.service` as `pi` |
 | `back-to-booth.desktop` | `~/Desktop/` — staff launcher that starts the kiosk again after "Leave booth" |
 
 ## Camera
@@ -64,7 +65,7 @@ sudo apt install pcscd libpcsclite-dev
 ## Wi-Fi and leaving the booth
 
 The staff panel (five taps in the top-right corner of the Scan screen, then the PIN)
-has a Wi-Fi tab and a Booth tab. The print server does the work:
+has a Wi-Fi tab, a Debug tab and a Booth tab. The print server does the work:
 
 - **Wi-Fi** runs `nmcli` as `pi`. `50-photobooth-networkmanager.rules` lets that
   user scan, change connections and join networks without a password prompt. Check the
@@ -73,6 +74,13 @@ has a Wi-Fi tab and a Booth tab. The print server does the work:
   for `org.freedesktop.NetworkManager.network-control` and
   `org.freedesktop.NetworkManager.settings.modify.system`. If the Wi-Fi tab still says
   permission denied, restart polkit (`sudo systemctl restart polkit`).
+- **Debug** shows `ssh pi@<address>` for each network address (and `<hostname>.local`), the
+  ssh service state and the joined Wi-Fi network, with a button to the Wi-Fi tab. Its
+  **Reinitialize camera** button stops `photobooth-webcam.service`, runs `gphoto2 --reset` if a
+  Canon is on USB, and starts the service again; a fresh start also clears the "Canon won't
+  open, use the Pi Camera" fallback. It needs `50-photobooth-systemd.rules` (check with
+  `pkaction --action-id org.freedesktop.systemd1.manage-units --verbose`). **Test camera**
+  opens a live preview in the panel, and the last lines of the webcam log are under it.
 - **Leave booth** (Booth tab, after a confirm) stops the `lwrespawn` loop that runs
   `photobooth-kiosk.sh`, then the kiosk's own Chromium window. Other Chromium windows are
   left open. The Next.js and print servers keep running.

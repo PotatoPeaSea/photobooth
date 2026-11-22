@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fake systemctl: records every call. `is-active` prints the state in systemctl_state_<unit>
+# (default "active"; missing means inactive for ssh/sshd only if systemctl_ssh_inactive exists).
+# `systemctl_fail` holding a verb (stop, start) makes that verb exit 1.
+source "$(dirname "$0")/common.sh"
+fake_call systemctl "$@"
+
+args=("$@")
+[ "${args[0]}" = "--no-ask-password" ] && args=("${args[@]:1}")
+verb="${args[0]}"
+unit="${args[1]}"
+
+if [ "$verb" = "is-active" ]; then
+  state="$(cat "$FAKE_CUPS_STATE/systemctl_state_$unit" 2>/dev/null)"
+  state="${state:-active}"
+  echo "$state"
+  [ "$state" = "active" ] && exit 0 || exit 3
+fi
+if [ -f "$FAKE_CUPS_STATE/systemctl_fail" ] && [ "$(cat "$FAKE_CUPS_STATE/systemctl_fail")" = "$verb" ]; then
+  echo "Failed to $verb $unit: Access denied" >&2
+  exit 1
+fi
+exit 0

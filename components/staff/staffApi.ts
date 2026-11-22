@@ -199,3 +199,34 @@ export const connectWifi = (pin: string, ssid: string, password: string) =>
 
 /** Answered before Chromium is closed, so the reply still reaches the page. */
 export const leaveKiosk = (pin: string) => call<{ ok: boolean }>(pin, "POST", "leave-kiosk");
+
+export interface DebugInfo {
+  network: {
+    hostname: string;
+    /** The account ssh logs in as (the print server's user). */
+    user: string;
+    addresses: { iface: string; family: "IPv4" | "IPv6"; address: string }[];
+    /** systemctl state of the ssh service: active, inactive, failed, ... */
+    ssh: string;
+    /** Joined Wi-Fi network, or null. */
+    wifi: string | null;
+  };
+  camera: {
+    /** systemctl state of photobooth-webcam.service. */
+    service: string;
+    canonOnUsb: boolean;
+    device: string;
+    deviceExists: boolean;
+    /** Last lines of the webcam script's log. */
+    log: string[];
+  };
+}
+
+export const fetchDebug = (pin: string) => call<DebugInfo>(pin, "GET", "debug");
+
+/** Stop, Canon USB reset, start: up to about 90 seconds in the worst case. */
+export const restartCameraFeed = (pin: string) =>
+  call<{ ok: boolean; message: string }>(pin, "POST", "camera/restart", {}, {
+    timeoutMs: 100_000,
+    keepServerText: true,
+  });

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fake lsusb: prints $FAKE_CUPS_STATE/lsusb if present (else a SELPHY only, so no Canon camera).
+source "$(dirname "$0")/common.sh"
+fake_call lsusb "$@"
+if [ -f "$FAKE_CUPS_STATE/lsusb" ]; then
+  cat "$FAKE_CUPS_STATE/lsusb"
+else
+  echo "Bus 001 Device 004: ID 04a9:3255 Canon, Inc. SELPHY CP910"
+fi
