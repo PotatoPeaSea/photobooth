@@ -35,7 +35,7 @@ const PRINTER_LIST = (process.env.PRINTER_NAME ?? "")
   .split(",")
   .map((name) => name.trim())
   .filter(Boolean);
-const AUTO_PRINTERS = PRINTER_LIST.length === 1 && /^(auto|*)$/i.test(PRINTER_LIST[0]);
+const AUTO_PRINTERS = PRINTER_LIST.length === 1 && /^(auto|\*)$/i.test(PRINTER_LIST[0]);
 const PRINTER_NAMES = AUTO_PRINTERS ? [] : PRINTER_LIST;
 const PRINTER_NAME = PRINTER_NAMES[0] ?? null;
 const MULTI_PRINTER = AUTO_PRINTERS || PRINTER_NAMES.length > 1;
@@ -246,9 +246,8 @@ async function usbSerials() {
 async function deviceUris() {
   const uris = new Map();
   const out = await runCmd("lpstat", ["-v"]).catch(() => "");
-  for (const line of out.split("
-")) {
-    const m = line.match(/^device for (S+):s*(S+)/);
+  for (const line of out.split("\n")) {
+    const m = line.match(/^device for (\S+):\s*(\S+)/);
     if (m) uris.set(m[1], m[2]);
   }
   return uris;
@@ -256,7 +255,7 @@ async function deviceUris() {
 
 /** The serial in a Gutenprint USB device URI, or null for any other kind of queue. */
 function gutenprintSerial(uri) {
-  const m = uri?.match(/^gutenprintd*+usb://[^/]+/([^?#]+)/);
+  const m = uri?.match(/^gutenprint\d*\+usb:\/\/[^/]+\/([^?#]+)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
 
