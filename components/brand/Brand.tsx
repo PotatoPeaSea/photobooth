@@ -42,10 +42,10 @@ export function Logo({ className }: { className?: string }) {
   return <Shape shape={logoPrimary} className={className} title="StormHacks 26’" />;
 }
 
-/** Corner wordmark "Jason’s Big 24" — size it by height, like the old tertiary logo. */
+/** Corner wordmark "Jayson’s Big 24" — size it by height, like the old tertiary logo. */
 export function TertiaryLogo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 300 40" className={className} style={{ aspectRatio: "300 / 40" }} role="img" aria-label="Jason’s Big 24">
+    <svg viewBox="0 0 300 40" className={className} style={{ aspectRatio: "300 / 40" }} role="img" aria-label="Jayson’s Big 24">
       <text
         x="0"
         y="33"
@@ -56,7 +56,7 @@ export function TertiaryLogo({ className }: { className?: string }) {
         textLength={300}
         lengthAdjust="spacingAndGlyphs"
       >
-        Jason’s Big 24
+        Jayson’s Big 24
       </text>
     </svg>
   );
@@ -100,11 +100,11 @@ export function Tagline({ className }: { className?: string }) {
   const Star = () => <Shape shape={star} className="mx-[0.5em] inline-block h-[0.9em] align-[-0.1em]" />;
   return (
     <p className={`font-body ${className ?? ""}`}>
-      Happy Birthday Jason
+      Happy Birthday Jayson
       <Star />
       Big Two Four
       <Star />
-      #JasonsBig24
+      #JaysonsBig24
     </p>
   );
 }

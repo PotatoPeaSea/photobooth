@@ -86,7 +86,7 @@ export const FRAMES: FrameInfo[] = [
   // Three Jasons behind a [[[ ]]]; loop.
   {
     id: "crew",
-    label: "Jason ×3",
+    label: "Jayson ×3",
     bg: BRAND.white,
     fg: BRAND.black,
     mascot: "jason-x",
@@ -100,7 +100,7 @@ export function frameInfo(id: FrameId): FrameInfo {
   return FRAMES.find((f) => f.id === id)!;
 }
 
-const WORDMARK = "Jason’s Big 24";
+const WORDMARK = "Jayson’s Big 24";
 const DATE_LEFT = "Happy 24th";
 const DATE_RIGHT = "Big Two Four";
 
@@ -199,7 +199,7 @@ function fitDateSize(d: DrawCtx, max: number, width: number): number {
   return size;
 }
 
-/** "Jason’s Big 24" with cap height ~`h`; returns its width, draws only when `at` is given. */
+/** "Jayson’s Big 24" with cap height ~`h`; returns its width, draws only when `at` is given. */
 function wordmark(d: DrawCtx, h: number, at?: { x: number; top: number; color: string }): number {
   const { ctx } = d;
   const size = h * 1.3;
@@ -681,7 +681,7 @@ export function frameImages(id: FrameId): ArtImage[] {
   return [...names];
 }
 
-const TAGLINE = ["Welcome to Jason’s Big Two Four", "Happy 24th", "#JasonsBig24"];
+const TAGLINE = ["Welcome to Jayson’s Big Two Four", "Happy 24th", "#JaysonsBig24"];
 const taglineFor = (d: DrawCtx) => (d.frame.sponsor ? [d.frame.sponsor.name, "SFU Surge"] : TAGLINE);
 /** Separator / confetti shape: the brand star, or the sponsor's mark on their frame. */
 const starFor = (d: DrawCtx) => d.frame.sponsor?.mark ?? star;

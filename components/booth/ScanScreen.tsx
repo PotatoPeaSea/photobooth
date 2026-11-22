@@ -35,7 +35,7 @@ const STAFF_TAPS = 5;
 const STAFF_WINDOW_MS = 3_000;
 
 /**
- * Attract screen for Jason's Big 24: no badge check-in on this version, a tap
+ * Attract screen for Jayson's Big 24: no badge check-in on this version, a tap
  * anywhere starts the booth. `onAdmitted` always gets null (no badge tap).
  */
 export default function ScanScreen({
@@ -106,7 +106,7 @@ export default function ScanScreen({
           line1="Welcome to"
           line2={
             <>
-              Jason’s Big <span className="whitespace-nowrap">Two Four</span>
+              Jayson’s Big <span className="whitespace-nowrap">Two Four</span>
             </>
           }
           className="text-[4rem]"
