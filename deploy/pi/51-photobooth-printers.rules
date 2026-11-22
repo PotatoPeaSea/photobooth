@@ -1,0 +1,3 @@
+# A Canon device (SELPHY printer or camera) was plugged in: add a queue for any new printer.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="04a9", \
+  RUN+="/usr/bin/systemctl --no-block start photobooth-add-printers.service"

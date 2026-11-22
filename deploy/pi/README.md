@@ -56,6 +56,19 @@ sudo lpadmin -p Selphy -E -v 'gutenprint53+usb://canon-cp910/<serial>' \
 
 and in `.env.local`: `PRINTER_NAME=Selphy`, `CUPS_MEDIA_OPTION=Postcard`.
 
+### Several printers, plugged in any time
+
+`photobooth-add-printers.sh` (with `photobooth-add-printers.service` and the udev rule
+`51-photobooth-printers.rules`) runs at boot and whenever a Canon device is plugged in. It adds a
+Gutenprint queue, named like `Selphy910-5414`, for any SELPHY on USB that lacks one, and resumes
+paused queues whose printer is back. Install them with the other files in the table above (the
+script into `/usr/local/bin`, the unit into `/etc/systemd/system`, the rule into
+`/etc/udev/rules.d`), then `sudo systemctl enable photobooth-add-printers`.
+
+Set `PRINTER_NAME=auto` in `.env.local` and the print server alternates between every plugged-in
+Gutenprint USB queue, skipping paused ones. `PRINTER_NAME` can also be a comma-separated list of
+queues, or one queue as before.
+
 ## NFC
 
 ```sh

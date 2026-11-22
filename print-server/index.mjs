@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { execFile } from "node:child_process";
 import { timingSafeEqual } from "node:crypto";
+import { readdir, readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { createHistory, normaliseExt, resolveHistoryDir } from "./history.mjs";
 import {
@@ -28,7 +29,16 @@ import { readCameraStatus, readNetworkInfo, restartCamera } from "./system.mjs";
 const exec = promisify(execFile);
 
 const PORT = Number(process.env.PRINT_SERVER_PORT ?? 3847);
-const PRINTER_NAME = process.env.PRINTER_NAME?.trim() || null;
+// PRINTER_NAME is one CUPS queue, a comma-separated list of queues, or "auto". With several queues
+// (or "auto", meaning every USB SELPHY queue) prints alternate between the ones that are plugged in.
+const PRINTER_LIST = (process.env.PRINTER_NAME ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+const AUTO_PRINTERS = PRINTER_LIST.length === 1 && /^(auto|*)$/i.test(PRINTER_LIST[0]);
+const PRINTER_NAMES = AUTO_PRINTERS ? [] : PRINTER_LIST;
+const PRINTER_NAME = PRINTER_NAMES[0] ?? null;
+const MULTI_PRINTER = AUTO_PRINTERS || PRINTER_NAMES.length > 1;
 const MEDIA_OPTION = process.env.CUPS_MEDIA_OPTION ?? "Postcard";
 const STAFF_PIN = (process.env.STAFF_PIN ?? "").trim();
 // The keypad takes 4 to 8 digits. Any other PIN could never be typed, so the panel stays off
@@ -221,8 +231,72 @@ async function getQueueStatus(printer) {
   };
 }
 
-function resolvePrinter(requested, defaultPrinter) {
-  return requested?.trim() || PRINTER_NAME || defaultPrinter || null;
+/** Serial numbers of everything on USB right now. */
+async function usbSerials() {
+  const root = "/sys/bus/usb/devices";
+  const serials = new Set();
+  for (const dev of await readdir(root).catch(() => [])) {
+    const serial = await readFile(`${root}/${dev}/serial`, "utf8").catch(() => "");
+    if (serial.trim()) serials.add(serial.trim());
+  }
+  return serials;
+}
+
+/** Queue name → device URI, from `lpstat -v`. */
+async function deviceUris() {
+  const uris = new Map();
+  const out = await runCmd("lpstat", ["-v"]).catch(() => "");
+  for (const line of out.split("
+")) {
+    const m = line.match(/^device for (S+):s*(S+)/);
+    if (m) uris.set(m[1], m[2]);
+  }
+  return uris;
+}
+
+/** The serial in a Gutenprint USB device URI, or null for any other kind of queue. */
+function gutenprintSerial(uri) {
+  const m = uri?.match(/^gutenprintd*+usb://[^/]+/([^?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/**
+ * The queues whose printer is plugged in. A queue with a Gutenprint USB URI counts while its
+ * serial number is on the USB bus; other queues named in PRINTER_NAME are assumed present.
+ * "auto" considers only Gutenprint USB queues, which photobooth-add-printers creates.
+ */
+async function connectedPrinters(candidates) {
+  const [uris, serials] = await Promise.all([deviceUris(), usbSerials()]);
+  return candidates.filter((name) => {
+    const serial = gutenprintSerial(uris.get(name));
+    if (serial) return serials.has(serial);
+    return !AUTO_PRINTERS && uris.has(name);
+  });
+}
+
+/** The queue the last print went to; the next print starts after it. */
+let lastPrinter = null;
+
+function rotation(names) {
+  const i = names.indexOf(lastPrinter);
+  return i < 0 ? names : [...names.slice(i + 1), ...names.slice(0, i + 1)];
+}
+
+async function resolvePrinter(requested, defaultPrinter) {
+  const asked = requested?.trim();
+  if (asked) return asked;
+  if (MULTI_PRINTER) {
+    const { printers } = await listPrinters();
+    const candidates = AUTO_PRINTERS ? printers.map((p) => p.name) : PRINTER_NAMES;
+    const connected = await connectedPrinters(candidates);
+    // A paused queue (CUPS pauses on a printer fault) is skipped while another one is usable.
+    const enabled = new Set(printers.filter((p) => p.enabled).map((p) => p.name));
+    const usable = connected.filter((name) => enabled.has(name));
+    const next = rotation(usable.length ? usable : connected)[0];
+    if (next) return next;
+    return candidates[0] ?? defaultPrinter ?? null;
+  }
+  return PRINTER_NAME || defaultPrinter || null;
 }
 
 // Printer names reach execFile arguments, so anything that could read as an option is refused.
@@ -234,7 +308,7 @@ function requestedPrinterName(value) {
 
 async function defaultPrinterTarget() {
   const { defaultPrinter } = await listPrinters();
-  return resolvePrinter(null, defaultPrinter);
+  return await resolvePrinter(null, defaultPrinter);
 }
 
 function parseImage(image) {
@@ -337,7 +411,7 @@ app.get(
   "/health",
   route(async (_req, res) => {
     const { defaultPrinter } = await listPrinters();
-    const printer = resolvePrinter(null, defaultPrinter);
+    const printer = await resolvePrinter(null, defaultPrinter);
     const queue = printer ? await getQueueStatus(printer) : null;
     const state = queue ? queue.state : "offline";
     res.json({
@@ -361,7 +435,7 @@ app.get(
       res.status(400).json({ error: "Invalid printer name" });
       return;
     }
-    const printer = resolvePrinter(requested, defaultPrinter);
+    const printer = await resolvePrinter(requested, defaultPrinter);
     if (!printer) {
       res.status(503).json({ error: "No printer configured" });
       return;
@@ -380,7 +454,7 @@ app.post(
       res.status(400).json({ error: "Invalid printer name" });
       return;
     }
-    const printer = resolvePrinter(requested, defaultPrinter);
+    const printer = await resolvePrinter(requested, defaultPrinter);
     if (!printer) {
       res.status(503).json({ error: "No printer configured" });
       return;
@@ -424,7 +498,7 @@ app.post(
     }
 
     const { defaultPrinter } = await listPrinters();
-    const printer = resolvePrinter(requested, defaultPrinter);
+    const printer = await resolvePrinter(requested, defaultPrinter);
     if (!printer) {
       res.status(503).json({
         error: "No printer configured. Set PRINTER_NAME or choose a CUPS default.",
@@ -454,6 +528,7 @@ app.post(
       return;
     }
 
+    if (MULTI_PRINTER) lastPrinter = printer;
     const jobId = jobIdFrom(result.stdout);
     try {
       await printHistory.save(parsed.buffer, { ext: parsed.ext, jobId });
@@ -783,7 +858,8 @@ app.post(
 
 app.listen(PORT, "127.0.0.1", () => {
   log(`Listening on http://127.0.0.1:${PORT}`);
-  if (PRINTER_NAME) log(`Printer override: ${PRINTER_NAME}`);
+  if (MULTI_PRINTER) log(`Printers (alternating between plugged-in queues): ${AUTO_PRINTERS ? "auto" : PRINTER_NAMES.join(", ")}`);
+  else if (PRINTER_NAME) log(`Printer override: ${PRINTER_NAME}`);
   log(`Media: PageSize=${MEDIA_OPTION}`);
   log(`Print history: ${printHistory.dir}`);
   if (STAFF_PIN_OK) log("Staff panel enabled");
