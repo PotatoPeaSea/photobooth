@@ -7,7 +7,9 @@
 
 export type Visibility = "public" | "private";
 
-const UPLOAD_TIMEOUT_MS = 15_000;
+const UPLOAD_TIMEOUT_MS = 10_000;
+const UPLOAD_ATTEMPTS = 3;
+const UPLOAD_RETRY_DELAY_MS = 1_000;
 // The shots are bigger and nobody is waiting on them at the booth.
 const FRAMES_TIMEOUT_MS = 60_000;
 
@@ -49,12 +51,26 @@ export async function uploadToGallery(
   form.append("file", new Blob([new Uint8Array(buffer)], { type: contentType }), `strip.${ext}`);
   form.append("visibility", visibility);
   if (badge) form.append("badge", JSON.stringify(badge));
-  const res = await fetch(`${config.base}/api/photos`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.key}` },
-    body: form,
-    signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
-  });
+  // The booth often runs on a phone hotspot that drops for a few seconds. A failed upload falls
+  // back to a link on the booth's own disk that a guest's phone can't open, so retry a network
+  // failure before giving up. An answer from the gallery (even an error) is final.
+  let res: Response | undefined;
+  for (let attempt = 1; attempt <= UPLOAD_ATTEMPTS; attempt++) {
+    try {
+      res = await fetch(`${config.base}/api/photos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${config.key}` },
+        body: form,
+        signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
+      });
+      break;
+    } catch (err) {
+      if (attempt === UPLOAD_ATTEMPTS) throw err;
+      console.warn(`Gallery upload attempt ${attempt} failed, retrying:`, err);
+      await new Promise((resolve) => setTimeout(resolve, UPLOAD_RETRY_DELAY_MS));
+    }
+  }
+  if (!res) throw new Error("Gallery upload failed (no response)");
   const body = (await res.json().catch(() => null)) as
     | { url?: string; id?: string; error?: { code?: string; message?: string } }
     | null;
