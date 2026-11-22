@@ -267,10 +267,14 @@ function gutenprintSerial(uri) {
  */
 async function connectedPrinters(candidates) {
   const [uris, serials] = await Promise.all([deviceUris(), usbSerials()]);
+  const seen = new Set();
   return candidates.filter((name) => {
     const serial = gutenprintSerial(uris.get(name));
-    if (serial) return serials.has(serial);
-    return !AUTO_PRINTERS && uris.has(name);
+    if (!serial) return !AUTO_PRINTERS && uris.has(name);
+    // Two queues can point at one printer; count it once.
+    if (!serials.has(serial) || seen.has(serial)) return false;
+    seen.add(serial);
+    return true;
   });
 }
 
