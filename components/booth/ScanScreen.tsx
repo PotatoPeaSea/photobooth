@@ -2,53 +2,42 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { BracketButton, Headline, Tagline, TertiaryLogo } from "@/components/brand/Brand";
-import {
-  classifyTap,
-  type NfcHealth,
-  type NfcTap,
-  type TapPopup,
-} from "@/lib/nfcChallenge";
+import type { NfcTap } from "@/lib/nfcChallenge";
 import { BoothScreen, OtterScene } from "./Scene";
 
-const NOTICE_MS = 8000;
-const ADMIT_MS = 2400;
-const POLL_MS = 400;
-/** Tapping the otter cycles through the crew. */
-const OTTERS = ["otter-pink", "otter-sparky", "otter-stormy", "otter-sparky-vr", "otter-stormy-walk"];
+/** Tapping Jason cycles through his poses. */
+const POSES = ["jason-hips", "jason-frame", "jason-shock", "jason-x"];
 
-type LinkState = "unknown" | "online" | "offline";
+/** Die-cut Jason head stickers scattered round the attract screen. */
+const STICKERS = [
+  { name: "jason-head-shock", className: "left-[27rem] top-[1.6rem] w-[6.2rem]", tilt: "-12deg", delay: "0s" },
+  { name: "jason-head-x", className: "left-[22rem] bottom-[1.2rem] w-[8.5rem]", tilt: "8deg", delay: "-1.5s" },
+  { name: "jason-head-smile", className: "right-[1.6rem] top-[3.2rem] w-[5.4rem]", tilt: "14deg", delay: "-3s" },
+];
 
-function idleCopy(link: LinkState, configError: string | null, readerMissing: boolean) {
-  const headline = "Tap your badge on the reader";
-  if (link === "offline") return { headline, subtext: "Badge reader offline — skip the scan to keep going" };
-  if (configError) return { headline, subtext: configError };
-  if (readerMissing) return { headline, subtext: "Plug in the badge reader, or skip the scan" };
-  return { headline, subtext: "Check in for points, then strike a pose" };
-}
-
-function resultCopy(popup: TapPopup): { headline: string; subtext: string } {
-  if (popup.kind === "first") {
-    const points = `+${popup.points} ${popup.points === 1 ? "point" : "points"}`;
-    return {
-      headline: popup.name ? `You’re in, ${popup.name.split(" ")[0]}!` : "You’re checked in!",
-      subtext: `${points} for your first visit — let’s take some photos`,
-    };
-  }
-  if (popup.kind === "repeat") {
-    return {
-      headline: popup.name ? `Welcome back, ${popup.name.split(" ")[0]}!` : "Welcome back!",
-      subtext: "No points this time, but snap away",
-    };
-  }
-  return { headline: "Badge not recognized", subtext: popup.message };
-}
+/** White die-cut border plus a soft drop shadow, traced round the PNG's alpha. */
+const STICKER_FILTER = [
+  ...[
+    [0.22, 0],
+    [-0.22, 0],
+    [0, 0.22],
+    [0, -0.22],
+    [0.16, 0.16],
+    [-0.16, 0.16],
+    [0.16, -0.16],
+    [-0.16, -0.16],
+  ].map(([x, y]) => `drop-shadow(${x}rem ${y}rem 0 #fff)`),
+  "drop-shadow(0 0.3rem 0.4rem rgba(16,26,33,.35))",
+].join(" ");
 
 /** Five taps inside this window on the top-right corner open the staff panel. */
 const STAFF_TAPS = 5;
 const STAFF_WINDOW_MS = 3_000;
 
-/** Attract screen: badge check-in (NFC polling) or skip straight to the booth. */
-/** `onAdmitted` gets the badge tap that let the guest in, or null if they skipped the scan. */
+/**
+ * Attract screen for Jason's Big 24: no badge check-in on this version, a tap
+ * anywhere starts the booth. `onAdmitted` always gets null (no badge tap).
+ */
 export default function ScanScreen({
   onAdmitted,
   onStaff,
@@ -56,105 +45,15 @@ export default function ScanScreen({
   onAdmitted: (tap: NfcTap | null) => void;
   onStaff: () => void;
 }) {
-  const [link, setLink] = useState<LinkState>("unknown");
   const staffTaps = useRef<number[]>([]);
-  const [health, setHealth] = useState<NfcHealth | null>(null);
-  const [popup, setPopup] = useState<TapPopup | null>(null);
-  const [copy, setCopy] = useState(() => idleCopy("unknown", null, false));
-  const [visible, setVisible] = useState(true);
-  const fadeTimer = useRef<number | null>(null);
-  // The raw tap behind `popup`, handed on so it's saved with the photos.
-  const tapRef = useRef<NfcTap | null>(null);
   const [taps, setTaps] = useState(0);
 
-  // Warm the cache so a tap swaps otters without a blank frame.
+  // Warm the cache so a tap swaps poses without a blank frame.
   useEffect(() => {
-    for (const name of OTTERS) new Image().src = `/brand/${name}.png`;
+    for (const name of [...POSES, ...STICKERS.map((s) => s.name)]) new Image().src = `/brand/${name}.png`;
   }, []);
 
-  // Poll the badge station; the first response only primes "last seen".
-  useEffect(() => {
-    let stopped = false;
-    let primed = false;
-    let seenAt: string | null = null;
-    let inFlight = false;
-
-    async function tick() {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const res = await fetch("/api/nfc", { cache: "no-store" });
-        const data = (await res.json()) as {
-          ok?: boolean;
-          health?: NfcHealth | null;
-          last?: NfcTap | null;
-        };
-        if (stopped) return;
-        setHealth(data.health ?? null);
-        if (!data.ok) {
-          setLink("offline");
-          return;
-        }
-        setLink("online");
-        const at = data.last?.at ?? null;
-        if (!primed) {
-          primed = true;
-          seenAt = at;
-          return;
-        }
-        if (!at || at === seenAt) return;
-        seenAt = at;
-        const next = classifyTap(data.last);
-        if (next) {
-          tapRef.current = data.last ?? null;
-          setPopup(next);
-        }
-      } catch {
-        if (!stopped) setLink("offline");
-      } finally {
-        inFlight = false;
-      }
-    }
-
-    void tick();
-    const id = window.setInterval(() => void tick(), POLL_MS);
-    return () => {
-      stopped = true;
-      window.clearInterval(id);
-    };
-  }, []);
-
-  const configError = link === "online" ? health?.configError?.trim() || null : null;
-  const readerMissing = link === "online" && !configError && health != null && !health.reader;
-
-  // Cross-fade the status copy.
-  useEffect(() => {
-    const next = popup ? resultCopy(popup) : idleCopy(link, configError, readerMissing);
-    setVisible(false);
-    if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
-    fadeTimer.current = window.setTimeout(() => {
-      setCopy(next);
-      setVisible(true);
-    }, 180);
-    return () => {
-      if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
-    };
-  }, [popup, link, configError, readerMissing]);
-
-  // Successful taps admit after a beat; notices clear themselves.
-  useEffect(() => {
-    if (!popup) return;
-    const id =
-      popup.kind === "notice"
-        ? window.setTimeout(() => setPopup(null), NOTICE_MS)
-        : window.setTimeout(() => onAdmitted(tapRef.current), ADMIT_MS);
-    return () => window.clearTimeout(id);
-  }, [popup, onAdmitted]);
-
-  const admitted = popup != null && popup.kind !== "notice";
-  const notice = popup?.kind === "notice";
-
-  // Hidden staff gesture. The click stops here so it can't admit a guest through the screen's onClick.
+  // Hidden staff gesture. The click stops here so it can't start the booth through the screen's onClick.
   function onCornerTap(e: MouseEvent<HTMLDivElement>) {
     e.stopPropagation();
     const now = Date.now();
@@ -169,56 +68,67 @@ export default function ScanScreen({
   }
 
   return (
-    <BoothScreen
-      grain
-      className="bg-sh-blue text-sh-white"
-      onClick={() => {
-        if (admitted) onAdmitted(tapRef.current);
-      }}
-    >
+    <BoothScreen grain className="bg-sh-blue text-sh-white" onClick={() => onAdmitted(null)}>
       <Tagline className="absolute left-[1.5rem] top-[1.25rem] text-[0.8rem]" />
+
+      {/* Giant "24" behind Jason. */}
+      <p
+        aria-hidden
+        className="type-display pointer-events-none absolute bottom-[3rem] right-[0.5rem] select-none text-[22rem] leading-none tracking-[-0.04em] text-sh-yellow"
+      >
+        24
+      </p>
+
+      {STICKERS.map((s) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={s.name}
+          src={`/brand/${s.name}.png`}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className={`pointer-events-none absolute animate-bob ${s.className}`}
+          style={{ filter: STICKER_FILTER, "--tilt": s.tilt, animationDelay: s.delay } as React.CSSProperties}
+        />
+      ))}
 
       <div className="absolute bottom-0 right-[1rem] top-[2.5rem] w-[27rem]">
         <OtterScene
-          key={admitted ? "yay" : "idle"}
-          otter={OTTERS[taps % OTTERS.length]!}
-          frame="brackets"
-          className={admitted ? "animate-rise" : ""}
+          otter={POSES[taps % POSES.length]!}
+          frame="none"
           onTap={() => setTaps((t) => t + 1)}
           tapCount={taps}
         />
       </div>
 
       <div className="absolute left-[1.5rem] top-1/2 w-[33rem] -translate-y-1/2">
-        <Headline line1="Snap With" line2="StormHacks" className="text-[4.6rem]" />
+        <Headline
+          line1="Welcome to"
+          line2={
+            <>
+              Jason’s Big <span className="whitespace-nowrap">Two Four</span>
+            </>
+          }
+          className="text-[4rem]"
+        />
 
-        <div
-          className="mt-[1.75rem] min-h-[5.25rem] transition-opacity duration-150"
-          style={{ opacity: visible ? 1 : 0 }}
-          role="status"
-        >
-          <p className="flex items-center gap-[0.6rem] text-[1.45rem] font-semibold leading-tight">
-            <span
-              className={`inline-block size-[0.7rem] shrink-0 rounded-full ${
-                notice ? "bg-sh-orange" : admitted ? "bg-sh-yellow" : "animate-pulse bg-sh-white"
-              }`}
-            />
-            {copy.headline}
-          </p>
-          <p className="mt-[0.4rem] pl-[1.3rem] text-[1rem] font-medium text-sh-white/80">
-            {copy.subtext}
-          </p>
-        </div>
+        <p className="mt-[1.5rem] flex items-center gap-[0.6rem] text-[1.45rem] font-semibold leading-tight">
+          <span className="inline-block size-[0.7rem] shrink-0 animate-pulse rounded-full bg-sh-yellow" />
+          Tap anywhere to start
+        </p>
+        <p className="mt-[0.4rem] pl-[1.3rem] text-[1rem] font-medium text-sh-white/80">
+          Strike a pose for the birthday boy
+        </p>
 
         <BracketButton
-          variant={admitted ? "inverse" : "secondary"}
+          variant="secondary"
           className="mt-[1.25rem]"
           onClick={(e) => {
             e.stopPropagation();
-            onAdmitted(admitted ? tapRef.current : null);
+            onAdmitted(null);
           }}
         >
-          {admitted ? "Let’s Go" : "Skip Scan"}
+          Let’s Go
         </BracketButton>
       </div>
 

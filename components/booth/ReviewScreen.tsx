@@ -63,7 +63,7 @@ function PublicPrompt({
           <span className="type-display block text-[2.6rem]">Everyone?</span>
         </h2>
         <p className="mt-[0.8rem] text-[1.05rem] font-medium leading-snug text-sh-black/75">
-          Put your photos on the public StormHacks photobooth site, where anyone can see them. Either way,
+          Put your photos on the public photobooth site, where anyone can see them. Either way,
           you’ll get a QR code to save them.
         </p>
         <div className="mt-[1.4rem] flex gap-[0.75rem]">

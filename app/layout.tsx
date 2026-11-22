@@ -3,8 +3,8 @@ import { fraunces, inter } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StormHacks 26’ Photobooth",
-  description: "Snap with StormHacks — 4×6 prints at StormHacks 26’, SFU Burnaby",
+  title: "Jason’s Big 24 Photobooth",
+  description: "Welcome to Jason’s Big Two Four — 4×6 photobooth prints",
 };
 
 export const viewport: Viewport = {

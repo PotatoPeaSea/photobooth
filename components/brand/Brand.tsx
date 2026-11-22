@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { BrandShape } from "@/lib/brand/shapes";
-import { logoPrimary, logoTertiary, star } from "@/lib/brand/shapes";
+import { logoPrimary, star } from "@/lib/brand/shapes";
 import {
   MATRIX_LABEL,
   MATRIX_LABEL_SIZE,
@@ -42,9 +42,24 @@ export function Logo({ className }: { className?: string }) {
   return <Shape shape={logoPrimary} className={className} title="StormHacks 26’" />;
 }
 
-/** Tertiary logo `( ⚡ ) [ SH 26’ ];` for corners. */
+/** Corner wordmark "Jason’s Big 24" — size it by height, like the old tertiary logo. */
 export function TertiaryLogo({ className }: { className?: string }) {
-  return <Shape shape={logoTertiary} className={className} title="SH 26’" />;
+  return (
+    <svg viewBox="0 0 300 40" className={className} style={{ aspectRatio: "300 / 40" }} role="img" aria-label="Jason’s Big 24">
+      <text
+        x="0"
+        y="33"
+        fill="currentColor"
+        className="font-display"
+        fontWeight={800}
+        fontSize={40}
+        textLength={300}
+        lengthAdjust="spacingAndGlyphs"
+      >
+        Jason’s Big 24
+      </text>
+    </svg>
+  );
 }
 
 /** Illustration file in public/brand/ without extension, e.g. "otter-pink". */
@@ -85,11 +100,11 @@ export function Tagline({ className }: { className?: string }) {
   const Star = () => <Shape shape={star} className="mx-[0.5em] inline-block h-[0.9em] align-[-0.1em]" />;
   return (
     <p className={`font-body ${className ?? ""}`}>
-      West Canada’s Largest Hackathon
+      Happy Birthday Jason
       <Star />
-      Oct 3 + 4
+      Big Two Four
       <Star />
-      SFU Burnaby
+      #JasonsBig24
     </p>
   );
 }

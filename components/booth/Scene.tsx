@@ -64,7 +64,7 @@ function StarBurst({ color }: { color: string }) {
   );
 }
 
-export type SceneFrame = "brackets" | "braces" | "matrix";
+export type SceneFrame = "brackets" | "braces" | "matrix" | "none";
 
 /**
  * An otter rising from the bottom edge, framed by dynamic loops (opener
@@ -89,7 +89,6 @@ export function OtterScene({
   onTap?: () => void;
   tapCount?: number;
 }) {
-  const fullBody = otter === "otter-sparky";
   const [open, close] = frame === "braces" ? [braceOpen, braceClose] : [bracketOpen, bracketClose];
   return (
     <div className={`pointer-events-none absolute inset-0 ${className ?? ""}`} aria-hidden>
@@ -100,12 +99,12 @@ export function OtterScene({
           labelColor={matrixColors.label}
           className="absolute left-0 top-[30%] w-[50%]"
         />
-      ) : (
+      ) : frame === "none" ? null : (
         <Shape shape={open} className="absolute left-0 top-[26%] w-[52%]" style={{ color: loopColor }} />
       )}
       {/* The PNGs are larger than any slot, so max-* scales them down proportionally. */}
       <div
-        className={`absolute left-[56%] flex h-[80%] w-[78%] -translate-x-1/2 items-end justify-center ${fullBody ? "bottom-[3%]" : "bottom-0"}`}
+        className={`absolute left-[56%] flex h-[80%] w-[78%] -translate-x-1/2 items-end justify-center bottom-0`}
       >
         <Otter
           key={tapCount}
@@ -121,7 +120,7 @@ export function OtterScene({
         />
         {tapCount > 0 && <StarBurst key={`burst-${tapCount}`} color={loopColor} />}
       </div>
-      {frame !== "matrix" && (
+      {frame !== "matrix" && frame !== "none" && (
         <Shape shape={close} className="absolute bottom-[10%] right-0 w-[46%]" style={{ color: loopColor }} />
       )}
     </div>

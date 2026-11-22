@@ -1,17 +1,13 @@
 import QRCode from "qrcode";
 import { canvasFamily, fraunces, inter } from "@/app/fonts";
-import { drawMatrix, drawShape, shapeWidth } from "@/lib/brand/canvas";
-import { MATRIX_SPRAY, MATRIX_STAR, type Matrix } from "@/lib/brand/matrix";
+import { drawShape, shapeWidth } from "@/lib/brand/canvas";
 import {
   braceClose,
   braceOpen,
   bracketClose,
   bracketOpen,
   bracketX3,
-  logoPrimary,
-  logoTertiary,
   medallion,
-  onePassword,
   star,
   type BrandShape,
 } from "@/lib/brand/shapes";
@@ -42,22 +38,18 @@ export const ONE_PASSWORD = {
   cream: "#FFFEFB",
 } as const;
 
-export type FrameId = "stormy" | "sparky" | "orange" | "clean" | "garden" | "crew" | "hacker" | "onepassword";
+export type FrameId = "jason" | "twofour" | "framed" | "clean" | "crew" | "night";
 
-/** Illustrations cut from the brand guide, in public/brand/. */
+/** Cut-outs of the birthday boy, in public/brand/. */
 export type ArtImage =
-  | "otter-sparky"
-  | "otter-stormy"
-  | "otter-pink"
-  | "otter-sparky-vr"
-  | "otter-stormy-walk"
-  | "daisy-1"
-  | "daisy-2"
-  | "daisy-3"
-  | "daisy-4"
-  | "bush-1"
-  | "bush-2"
-  | "bush-3";
+  | "jason-hips"
+  | "jason-shock"
+  | "jason-frame"
+  | "jason-x"
+  | "jason-head-shock"
+  | "jason-head-smile"
+  | "jason-head-x"
+  | "jason-head-frame";
 
 export interface FrameInfo {
   id: FrameId;
@@ -70,7 +62,7 @@ export interface FrameInfo {
   mascot: ArtImage;
   /** Images the frame's artwork draws. */
   images: ArtImage[];
-  /** Sponsor whose mark sits beside the StormHacks logo (partnership lock-up). */
+  /** Sponsor whose mark sits beside the wordmark (partnership lock-up). */
   sponsor?: Sponsor;
 }
 
@@ -84,52 +76,33 @@ export interface Sponsor {
 }
 
 export const FRAMES: FrameInfo[] = [
-  // Pink otter + [ ]; on blue, as in "Applications Open Now".
-  { id: "stormy", label: "Stormy", bg: BRAND.blue, fg: BRAND.white, mascot: "otter-pink", images: ["otter-pink"] },
-  // Blue otter on yellow (dynamic loops post 2), with orange {i++;} matrices.
-  { id: "sparky", label: "Sparky", bg: BRAND.yellow, fg: BRAND.black, mascot: "otter-stormy", images: ["otter-stormy"] },
-  // Yellow otter + { }; on orange (dynamic loops post 1).
-  { id: "orange", label: "Orange", bg: BRAND.orange, fg: BRAND.black, mascot: "otter-sparky", images: ["otter-sparky"] },
-  { id: "clean", label: "Clean", bg: BRAND.white, fg: BRAND.black, mascot: "otter-sparky", images: [] },
-  // Bushes, daisies and both otters from the landing-page illustration.
-  {
-    id: "garden",
-    label: "Garden",
-    bg: BRAND.blue,
-    fg: BRAND.white,
-    mascot: "otter-sparky",
-    images: ["otter-sparky", "otter-stormy-walk", "bush-1", "bush-2", "bush-3", "daisy-1", "daisy-3", "daisy-4"],
-  },
-  // The whole otter crew behind [[[ ]]];.
+  // Jason, hands on hips, between [ ] loops on blue.
+  { id: "jason", label: "Big 24", bg: BRAND.blue, fg: BRAND.white, mascot: "jason-hips", images: ["jason-hips"] },
+  // Shocked Jason in front of a giant orange 24 on yellow.
+  { id: "twofour", label: "Two Four", bg: BRAND.yellow, fg: BRAND.black, mascot: "jason-shock", images: ["jason-shock"] },
+  // Jason framing the shot, between { } loops on orange.
+  { id: "framed", label: "Framed", bg: BRAND.orange, fg: BRAND.black, mascot: "jason-frame", images: ["jason-frame"] },
+  { id: "clean", label: "Clean", bg: BRAND.white, fg: BRAND.black, mascot: "jason-head-smile", images: [] },
+  // Three Jasons behind a [[[ ]]]; loop.
   {
     id: "crew",
-    label: "Crew",
+    label: "Jason ×3",
     bg: BRAND.white,
     fg: BRAND.black,
-    mascot: "otter-pink",
-    images: ["otter-pink", "otter-stormy", "otter-sparky-vr"],
+    mascot: "jason-x",
+    images: ["jason-hips", "jason-x", "jason-shock"],
   },
-  // Code-matrices post: Stormy Blue dots, orange {i++;}, VR Sparky.
-  { id: "hacker", label: "Hacker", bg: BRAND.black, fg: BRAND.white, mascot: "otter-sparky-vr", images: ["otter-sparky-vr"] },
-  // Sponsor frame: no StormHacks branding, only the Surge medallion beside a
-  // big 1Password keyhole on their navy, with "1PASSWORD" round the borders.
-  {
-    id: "onepassword",
-    label: "1Password",
-    bg: ONE_PASSWORD.navy,
-    fg: ONE_PASSWORD.cream,
-    mascot: "otter-stormy",
-    images: [],
-    sponsor: { name: "1Password", mark: onePassword, src: "/brand/sponsor-1password.svg", color: ONE_PASSWORD.cream },
-  },
+  // Jason crossing his fingers in front of a big blue 24 on black.
+  { id: "night", label: "Night", bg: BRAND.black, fg: BRAND.white, mascot: "jason-x", images: ["jason-x"] },
 ];
 
 export function frameInfo(id: FrameId): FrameInfo {
   return FRAMES.find((f) => f.id === id)!;
 }
 
-const DATE_LEFT = "Oct 3 + 4";
-const DATE_RIGHT = "SFU Burnaby";
+const WORDMARK = "Jason’s Big 24";
+const DATE_LEFT = "Happy 24th";
+const DATE_RIGHT = "Big Two Four";
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
 
@@ -200,7 +173,7 @@ function drawPhoto(
 
 // ---------------------------------------------------------------- text
 
-/** "Oct 3 + 4 ✺ SFU Burnaby" at `size`; returns its width, draws only when `at` is given. */
+/** "Happy 24th ✺ Big Two Four" at `size`; returns its width, draws only when `at` is given. */
 function dateLine(d: DrawCtx, size: number, at?: { x: number; midY: number }): number {
   const { ctx } = d;
   ctx.font = `500 ${size}px ${d.body}`;
@@ -226,6 +199,23 @@ function fitDateSize(d: DrawCtx, max: number, width: number): number {
   return size;
 }
 
+/** "Jason’s Big 24" with cap height ~`h`; returns its width, draws only when `at` is given. */
+function wordmark(d: DrawCtx, h: number, at?: { x: number; top: number; color: string }): number {
+  const { ctx } = d;
+  const size = h * 1.3;
+  ctx.font = `800 ${size}px ${d.display}`;
+  ctx.letterSpacing = `${-size * 0.02}px`;
+  const w = ctx.measureText(WORDMARK).width;
+  if (at) {
+    ctx.fillStyle = at.color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(WORDMARK, at.x, at.top + h);
+  }
+  ctx.letterSpacing = "0px";
+  return w;
+}
+
 /**
  * Logo over the date line. `align` "left" anchors at x, "center" centres in
  * `width`. Returns the block's bottom y.
@@ -245,17 +235,15 @@ function drawTextBlock(
     drawShape(d.ctx, medallion, align === "left" ? x : x + (width - h) / 2, top, h, d.frame.fg);
     return top + h;
   }
-  const clean = d.frame.id === "clean";
-  const logo = clean ? logoPrimary : logoTertiary;
-  const logoColor = clean ? BRAND.blue : d.frame.fg;
+  const logoColor = d.frame.id === "clean" ? BRAND.blue : d.frame.fg;
   let logoH = sizes.logo;
-  while (shapeWidth(logo, logoH) > width) logoH -= 1;
-  const logoW = shapeWidth(logo, logoH);
+  while (wordmark(d, logoH) > width && logoH > 12) logoH -= 1;
+  const logoW = wordmark(d, logoH);
   const dateSize = fitDateSize(d, sizes.date, width);
   const dateW = dateLine(d, dateSize);
   const lx = align === "left" ? x : x + (width - logoW) / 2;
   const dx = align === "left" ? x : x + (width - dateW) / 2;
-  drawShape(d.ctx, logo, lx, top, logoH, logoColor);
+  wordmark(d, logoH, { x: lx, top, color: logoColor });
   const gap = dateSize * 0.6;
   dateLine(d, dateSize, { x: dx, midY: top + logoH + gap + dateSize / 2 });
   return top + logoH + gap + dateSize;
@@ -264,7 +252,7 @@ function drawTextBlock(
 // ---------------------------------------------------------------- artwork
 
 /**
- * Each artwork is a composition measured in otter-heights (`u`): `width`
+ * Each artwork is a composition measured in figure-heights (`u`): `width`
  * is its width at u = 1, `draw` paints it with its bottom edge on `bottom`,
  * horizontally centred on `cx`.
  */
@@ -282,12 +270,8 @@ function img(d: DrawCtx, name: ArtImage, x: number, y: number, h: number) {
   if (i) d.ctx.drawImage(i, x, y, h * aspect(i), h);
 }
 
-function matrixWidth(m: Matrix) {
-  return (m.maxX - m.minX) / (m.maxY - m.minY);
-}
-
-/** Otter framed by a dynamic loop: opener behind, closer in front. */
-function loopsArt(otter: ArtImage, open: BrandShape, close: BrandShape, color: string, a: number): Art {
+/** Jason framed by a dynamic loop: opener behind, closer in front. */
+function loopsArt(who: ArtImage, open: BrandShape, close: BrandShape, color: string, a: number): Art {
   const lw = shapeWidth(open, 0.62);
   const cw = shapeWidth(close, 0.55);
   return {
@@ -296,59 +280,44 @@ function loopsArt(otter: ArtImage, open: BrandShape, close: BrandShape, color: s
     draw(d, cx, bottom, u) {
       const left = cx - (this.width * u) / 2;
       const ox = left + lw * 0.5 * u;
-      const fullBody = otter === "otter-sparky";
-      const oy = bottom - u - (fullBody ? u * 0.04 : 0);
+      const oy = bottom - u;
       drawShape(d.ctx, open, ox - lw * 0.5 * u, oy + u * 0.12, u * 0.62, color);
-      img(d, otter, ox, oy, u);
+      img(d, who, ox, oy, u);
       drawShape(d.ctx, close, ox + a * u - cw * 0.42 * u, oy + u * 0.42, u * 0.55, color);
     },
   };
 }
 
-/** Otter in front of a code matrix, as in the code-matrices post. */
-function matrixArt(otter: ArtImage, a: number, dot: string, label: string, spray: boolean): Art {
-  const mw = matrixWidth(MATRIX_STAR) * 0.95;
-  const sw = matrixWidth(MATRIX_SPRAY) * 0.5;
+/** A giant "24" with Jason stepping in front of its right half, as on a birthday balloon. */
+function bigNumberArt(who: ArtImage, a: number, color: string): Art {
+  const numW = 1.2;
+  const overlap = 0.6;
   return {
-    width: a + mw * 0.62 + (spray ? sw * 0.6 : 0),
+    width: numW * (1 - overlap) + a,
     height: 0.92,
     draw(d, cx, bottom, u) {
+      const { ctx } = d;
       const left = cx - (this.width * u) / 2;
-      const ox = left + mw * 0.62 * u;
-      const oy = bottom - u;
-      drawMatrix(d.ctx, MATRIX_STAR, left, oy + u * 0.04, u * 0.95, dot, label, d.display);
-      img(d, otter, ox, oy, u);
-      if (spray) drawMatrix(d.ctx, MATRIX_SPRAY, ox + a * u * 0.82, oy + u * 0.4, u * 0.5, dot, label, d.display);
+      ctx.save();
+      ctx.font = `800 ${u * 0.9}px ${d.display}`;
+      ctx.letterSpacing = `${-u * 0.04}px`;
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText("24", left + (numW * u) / 2, bottom - u * 0.2);
+      ctx.restore();
+      img(d, who, left + numW * (1 - overlap) * u, bottom - u, u);
     },
   };
 }
 
-/** Sparky with boba among the landing-page bushes and daisies, Stormy wandering behind. */
-function gardenArt(): Art {
-  return {
-    width: 1.75,
-    height: 0.92,
-    draw(d, cx, bottom, u) {
-      const left = cx - (this.width * u) / 2;
-      img(d, "bush-3", left + u * 0.75, bottom - u * 0.62, u * 0.5);
-      img(d, "otter-stormy-walk", left + u * 0.05, bottom - u * 0.68, u * 0.52);
-      img(d, "bush-2", left - u * 0.05, bottom - u * 0.36, u * 0.42);
-      img(d, "otter-sparky", left + u * 0.55, bottom - u * 1.0, u);
-      img(d, "daisy-4", left + u * 0.42, bottom - u * 0.62, u * 0.5);
-      img(d, "bush-1", left + u * 0.1, bottom - u * 0.3, u * 0.36);
-      img(d, "daisy-1", left + u * 1.38, bottom - u * 0.72, u * 0.64);
-      img(d, "daisy-3", left + u * 0.02, bottom - u * 0.5, u * 0.42);
-    },
-  };
-}
-
-/** Pink, Stormy and VR Sparky together behind a [[[ ]]]; loop. */
+/** Three Jasons together behind a [[[ ]]]; loop. */
 function crewArt(d: DrawCtx): Art {
-  const ap = aspect(d.images["otter-pink"]);
-  const as = aspect(d.images["otter-stormy"]);
-  const av = aspect(d.images["otter-sparky-vr"]);
+  const al = aspect(d.images["jason-hips"]);
+  const ar = aspect(d.images["jason-shock"]);
+  const am = aspect(d.images["jason-x"]);
   const back = 0.8;
-  const width = ap * back * 0.72 + av + as * back * 0.72;
+  const width = al * back * 0.72 + am + ar * back * 0.72;
   return {
     width,
     height: 0.95,
@@ -357,9 +326,9 @@ function crewArt(d: DrawCtx): Art {
       const loopH = u * 0.52;
       const loopW = shapeWidth(bracketX3, loopH);
       drawShape(d.ctx, bracketX3, cx - loopW / 2, bottom - u * 1.02, loopH, BRAND.blue);
-      img(d, "otter-pink", left, bottom - u * back, u * back);
-      img(d, "otter-stormy", left + width * u - as * back * u, bottom - u * back, u * back);
-      img(d, "otter-sparky-vr", left + ap * back * 0.72 * u, bottom - u * 0.98, u * 0.98);
+      img(d, "jason-hips", left, bottom - u * back, u * back);
+      img(d, "jason-shock", left + width * u - ar * back * u, bottom - u * back, u * back);
+      img(d, "jason-x", left + al * back * 0.72 * u, bottom - u * 0.98, u * 0.98);
     },
   };
 }
@@ -388,21 +357,18 @@ function sponsorArt(mark: BrandShape): Art {
 
 function artFor(d: DrawCtx): Art | null {
   const a = (n: ArtImage) => aspect(d.images[n]);
+  if (d.frame.sponsor) return sponsorArt(d.frame.sponsor.mark);
   switch (d.frame.id) {
-    case "stormy":
-      return loopsArt("otter-pink", bracketOpen, bracketClose, "#FFFFFF", a("otter-pink"));
-    case "orange":
-      return loopsArt("otter-sparky", braceOpen, braceClose, BRAND.white, a("otter-sparky"));
-    case "sparky":
-      return matrixArt("otter-stormy", a("otter-stormy"), BRAND.orange, BRAND.black, d.layout.mode === "grid");
-    case "hacker":
-      return matrixArt("otter-sparky-vr", a("otter-sparky-vr"), BRAND.blue, BRAND.orange, true);
-    case "garden":
-      return gardenArt();
+    case "jason":
+      return loopsArt("jason-hips", bracketOpen, bracketClose, "#FFFFFF", a("jason-hips"));
+    case "framed":
+      return loopsArt("jason-frame", braceOpen, braceClose, BRAND.white, a("jason-frame"));
+    case "twofour":
+      return bigNumberArt("jason-shock", a("jason-shock"), BRAND.orange);
+    case "night":
+      return bigNumberArt("jason-x", a("jason-x"), BRAND.blue);
     case "crew":
       return crewArt(d);
-    case "onepassword":
-      return sponsorArt(onePassword);
     case "clean":
       return null;
   }
@@ -559,7 +525,6 @@ function drawArt(d: DrawCtx, panel: Panel) {
   const b = panel.brand;
   const bottom = panel.bounds.y + panel.bounds.h;
   if (panel.brandSide === "bottom") {
-    if (d.frame.id === "garden") img(d, "bush-1", panel.bounds.x - 30, bottom - b.h * 0.24, b.h * 0.3);
     const x = b.x + Math.min(STRIP_TEXT_W, b.w * 0.48) + 12;
     // A sponsor's lock-up takes the top of the art box.
     const y = b.y + 8 + (d.frame.sponsor ? LOCKUP.strip + LOCKUP.gap : 0);
@@ -581,7 +546,6 @@ function drawArt(d: DrawCtx, panel: Panel) {
     drawTallLockup(d, d.frame.sponsor, { x, y, w, h: bottom - QR_EDGE - y });
     return;
   }
-  if (d.frame.id === "garden") img(d, "bush-1", b.x - 160, bottom - 120, 150);
   placeArt(d, art, { x: b.x, y: top, w: b.w, h: bottom - top }, bottom, COLUMN_OVERFLOW, -0.06);
 }
 
@@ -654,7 +618,7 @@ type StickerArt =
   | { kind: "star"; color: string }
   /** A sponsor's round mark, its cut-outs backed in white. */
   | { kind: "mark"; shape: BrandShape; color: string }
-  /** "{i++;}" chip, or other short `text`. */
+  /** Text chip ("{i++;}" by default). */
   | { kind: "code"; bg: string; fg: string; text?: string };
 
 interface Sticker {
@@ -684,42 +648,29 @@ const code = (bg: string, fg: string, text?: string): StickerArt => ({ kind: "co
 const mark = (shape: BrandShape, color: string): StickerArt => ({ kind: "mark", shape, color });
 
 const DECOR: Record<FrameId, Decor> = {
-  stormy: {
-    stickers: [pinA(starArt(BRAND.yellow)), pinB(image("otter-stormy-walk")), pinC(image("daisy-2"))],
+  jason: {
+    stickers: [pinA(starArt(BRAND.yellow)), pinB(image("jason-head-shock")), pinC(code(BRAND.orange, BRAND.white, "24"))],
     confetti: [BRAND.yellow, BRAND.white, BRAND.orange],
   },
-  sparky: {
-    stickers: [pinA(code(BRAND.black, BRAND.orange)), pinB(image("otter-pink")), pinC(image("daisy-1"))],
+  twofour: {
+    stickers: [pinA(code(BRAND.black, BRAND.yellow, "HBD!")), pinB(image("jason-head-frame")), pinC(image("jason-head-smile"))],
     confetti: [BRAND.blue, BRAND.orange, BRAND.white],
   },
-  orange: {
-    stickers: [pinA(starArt(BRAND.blue)), pinB(image("otter-sparky-vr")), pinC(image("daisy-3"))],
+  framed: {
+    stickers: [pinA(starArt(BRAND.blue)), pinB(image("jason-head-x")), pinC(image("jason-head-shock"))],
     confetti: [BRAND.yellow, BRAND.white, BRAND.blue],
   },
   clean: {
-    stickers: [pinA(starArt(BRAND.orange)), pinB(image("otter-sparky")), pinC(image("daisy-2"))],
+    stickers: [pinA(starArt(BRAND.orange)), pinB(image("jason-head-smile")), pinC(code(BRAND.blue, BRAND.white, "24"))],
     confetti: [BRAND.blue, BRAND.orange, BRAND.yellow],
-  },
-  garden: {
-    stickers: [pinA(image("daisy-4")), pinB(image("otter-pink")), pinC(image("otter-stormy"))],
-    confetti: [BRAND.yellow, BRAND.white],
   },
   crew: {
-    stickers: [pinA(starArt(BRAND.yellow)), pinB(image("daisy-1")), pinC(code(BRAND.blue, BRAND.white))],
+    stickers: [pinA(starArt(BRAND.yellow)), pinB(image("jason-head-shock")), pinC(code(BRAND.blue, BRAND.white, "HBD!"))],
     confetti: [BRAND.blue, BRAND.orange, BRAND.yellow],
   },
-  hacker: {
-    stickers: [pinA(code(BRAND.blue, BRAND.black)), pinB(image("otter-stormy")), pinC(starArt(BRAND.orange))],
+  night: {
+    stickers: [pinA(code(BRAND.blue, BRAND.black, "24")), pinB(image("jason-head-frame")), pinC(starArt(BRAND.orange))],
     confetti: [BRAND.blue, BRAND.orange],
-  },
-  onepassword: {
-    // Two keyhole stickers (kept upright) and a masked-password chip.
-    stickers: [
-      { ...pinA(mark(onePassword, ONE_PASSWORD.blue)), tilt: 0 },
-      pinB(code(ONE_PASSWORD.blue, ONE_PASSWORD.cream, "••••••••")),
-      { ...pinC(mark(onePassword, ONE_PASSWORD.navy)), tilt: 0 },
-    ],
-    confetti: [ONE_PASSWORD.blue, ONE_PASSWORD.sky, ONE_PASSWORD.cream],
   },
 };
 
@@ -730,7 +681,7 @@ export function frameImages(id: FrameId): ArtImage[] {
   return [...names];
 }
 
-const TAGLINE = ["West Canada’s Largest Hackathon", "Oct 3 + 4", "SFU Burnaby", "#StormHacks26"];
+const TAGLINE = ["Welcome to Jason’s Big Two Four", "Happy 24th", "#JasonsBig24"];
 const taglineFor = (d: DrawCtx) => (d.frame.sponsor ? [d.frame.sponsor.name, "SFU Surge"] : TAGLINE);
 /** Separator / confetti shape: the brand star, or the sponsor's mark on their frame. */
 const starFor = (d: DrawCtx) => d.frame.sponsor?.mark ?? star;

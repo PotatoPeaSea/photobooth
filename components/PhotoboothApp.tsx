@@ -41,7 +41,7 @@ type Step =
  */
 export default function PhotoboothApp() {
   const [step, setStep] = useState<Step>({ name: "scan" });
-  const [frame, setFrame] = useState<FrameId>("stormy");
+  const [frame, setFrame] = useState<FrameId>("jason");
   // Every guest starts from the default extras (tagline + confetti).
   const [addons, setAddons] = useState<AddOns>(DEFAULT_ADDONS);
   const [copies, setCopies] = useState(1);
@@ -61,7 +61,7 @@ export default function PhotoboothApp() {
   const reset = useCallback(() => {
     session.current++;
     badge.current = null;
-    setFrame("stormy");
+    setFrame("jason");
     setAddons(DEFAULT_ADDONS);
     setCopies(1);
     setDelay(DEFAULT_DELAY);

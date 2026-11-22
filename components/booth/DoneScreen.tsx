@@ -85,25 +85,21 @@ function queueLine({ ahead, printerReady }: QueueView): string | null {
 export type ShareState = { kind: "pending" } | { kind: "ready"; qr: string } | { kind: "failed" };
 
 const SCENE: Record<FrameId, SceneFrame> = {
-  stormy: "brackets",
-  orange: "braces",
-  sparky: "matrix",
+  jason: "brackets",
+  twofour: "braces",
+  framed: "braces",
   clean: "brackets",
-  garden: "braces",
   crew: "brackets",
-  hacker: "matrix",
-  onepassword: "brackets",
+  night: "brackets",
 };
 
 const LOOP_COLOR: Record<FrameId, string> = {
-  stormy: "#FFFFFF",
-  orange: "#ECECEF",
-  sparky: "#ECECEF",
+  jason: "#FFFFFF",
+  twofour: "#FF5D0B",
+  framed: "#ECECEF",
   clean: "#0278FF",
-  garden: "#FFFFFF",
   crew: "#0278FF",
-  hacker: "#ECECEF",
-  onepassword: "#145FE4",
+  night: "#0278FF",
 };
 
 function copyFor(print: PrintState, mode: PrintMode) {
@@ -169,7 +165,6 @@ export default function DoneScreen({
           otter={info.mascot}
           frame={SCENE[frame]}
           loopColor={LOOP_COLOR[frame]}
-          matrixColors={frame === "hacker" ? { dot: "#0278FF", label: "#FF5D0B" } : undefined}
         />
       </div>
 

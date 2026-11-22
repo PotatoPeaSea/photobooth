@@ -30,8 +30,14 @@ const config: Config = {
         rise: "rise 0.5s ease-out both",
         boing: "boing 0.55s cubic-bezier(0.3, 1.5, 0.5, 1)",
         burst: "burst 0.7s ease-out forwards",
+        bob: "bob 4.5s ease-in-out infinite",
       },
       keyframes: {
+        // Stickers drift gently; each sets --tilt for its resting angle.
+        bob: {
+          "0%, 100%": { transform: "translateY(0) rotate(var(--tilt, 0deg))" },
+          "50%": { transform: "translateY(-6%) rotate(calc(var(--tilt, 0deg) + 4deg))" },
+        },
         pop: {
           "0%": { transform: "scale(0.94)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" },
