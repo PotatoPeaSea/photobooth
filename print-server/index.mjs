@@ -285,6 +285,32 @@ function rotation(names) {
   return i < 0 ? names : [...names.slice(i + 1), ...names.slice(0, i + 1)];
 }
 
+/**
+ * Each queue the booth alternates between, for the gallery's admin panel: whether its printer is
+ * plugged in, ready or paused, and the jobs stuck on it (resuming a paused queue cancels them).
+ */
+async function printerOverview() {
+  const [{ printers }, uris] = await Promise.all([listPrinters(), deviceUris()]);
+  const names = AUTO_PRINTERS
+    ? printers.map((p) => p.name).filter((name) => gutenprintSerial(uris.get(name)))
+    : PRINTER_NAMES;
+  const connected = new Set(await connectedPrinters(names));
+  return Promise.all(
+    names.map(async (name) => {
+      const [status, queue] = await Promise.all([getPrinterStatus(name), getQueueStatus(name)]);
+      const plugged = connected.has(name);
+      return {
+        name,
+        connected: plugged,
+        ready: plugged && status.ready,
+        paused: status.disabled,
+        reason: status.reason,
+        jobs: queue.jobs.map(({ id, submitted }) => ({ id, submitted })),
+      };
+    }),
+  );
+}
+
 async function resolvePrinter(requested, defaultPrinter) {
   const asked = requested?.trim();
   if (asked) return asked;
@@ -417,9 +443,11 @@ app.get(
     const printer = await resolvePrinter(null, defaultPrinter);
     const queue = printer ? await getQueueStatus(printer) : null;
     const state = queue ? queue.state : "offline";
+    const printers = MULTI_PRINTER ? await printerOverview() : undefined;
     res.json({
-      ok: Boolean(printer && isPrintable(state)),
+      ok: printers ? printers.some((p) => p.ready) : Boolean(printer && isPrintable(state)),
       printer,
+      printers,
       media: MEDIA_OPTION,
       port: PORT,
       state,
